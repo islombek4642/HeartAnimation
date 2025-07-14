@@ -168,7 +168,8 @@ var loop = function () {
     // Agar URL'da matn bo'lsa, uni markazda chizish
     if (userText) {
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 20px Arial';
+        var fontSize = 20;
+        ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(userText, width / 2, height / 2);
