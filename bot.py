@@ -46,7 +46,6 @@ def setup_database():
             db_cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id BIGINT UNIQUE NOT NULL,
                 first_name VARCHAR(255),
                 last_name VARCHAR(255),
                 username VARCHAR(255),
@@ -54,6 +53,14 @@ def setup_database():
                 registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
+
+            # user_id ustuni mavjudligini tekshirish
+            db_cursor.execute(f"SHOW COLUMNS FROM users LIKE 'user_id'")
+            if not db_cursor.fetchone():
+                logger.info("'user_id' ustuni topilmadi. Jadvalga qo'shilmoqda...")
+                db_cursor.execute("ALTER TABLE users ADD COLUMN user_id BIGINT UNIQUE AFTER id")
+                logger.info("'user_id' ustuni muvaffaqiyatli qo'shildi.")
+
             db_connection.commit()
         else:
             logger.warning("MYSQL_PUBLIC_URL topilmadi. Ma'lumotlar bazasi funksiyalari o'chirilgan.")
