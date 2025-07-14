@@ -1,3 +1,5 @@
 python-telegram-bot
 python-dotenv
+faster-whisper
+torch
 mysql-connector-python
