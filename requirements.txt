@@ -1,5 +1,6 @@
 python-telegram-bot
 python-dotenv
 faster-whisper
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 mysql-connector-python
