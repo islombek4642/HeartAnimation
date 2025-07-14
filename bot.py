@@ -3,6 +3,7 @@ from telegram import Update, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
 import os
 from dotenv import load_dotenv
 import mysql.connector
+from urllib.parse import urlparse
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # .env faylidan o'zgaruvchilarni yuklash
@@ -23,62 +24,78 @@ if not BOT_TOKEN or not WEB_APP_URL:
     raise ValueError("Iltimos, .env fayliga BOT_TOKEN va WEB_APP_URL o'zgaruvchilarini kiriting.")
 
 # Ma'lumotlar bazasi sozlamalari
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_DATABASE = os.getenv("DB_DATABASE")
-DB_PORT = os.getenv("DB_PORT")
+DATABASE_URL = os.getenv("MYSQL_PUBLIC_URL")
+if not DATABASE_URL:
+    raise ValueError("MYSQL_PUBLIC_URL o'zgaruvchisi .env faylida yoki hosting sozlamalarida topilmadi.")
+
+# URL'ni qismlarga ajratish
+try:
+    url = urlparse(DATABASE_URL)
+    db_config = {
+        'user': url.username,
+        'password': url.password,
+        'host': url.hostname,
+        'database': url.path[1:],  # Boshidagi '/' belgisini olib tashlash
+        'port': url.port
+    }
+except Exception as e:
+    logger.error(f"DATABASE_URL ni o'qishda xatolik: {e}")
+    raise ValueError("DATABASE_URL noto'g'ri formatda.")
+
+
+def get_db_connection():
+    """Ma'lumotlar bazasiga ulanishni yaratadi va qaytaradi."""
+    try:
+        conn = mysql.connector.connect(**db_config)
+        return conn
+    except mysql.connector.Error as err:
+        logger.error(f"Ma'lumotlar bazasiga ulanishda xatolik: {err}")
+        return None
 
 def setup_database():
-    """Ma'lumotlar bazasiga ulanadi va kerakli jadvalni yaratadi."""
-    try:
-        db = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE,
-            port=DB_PORT
-        )
-        cursor = db.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id BIGINT PRIMARY KEY,
-                first_name VARCHAR(255) NOT NULL,
-                last_name VARCHAR(255),
-                username VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        db.commit()
-        logger.info("Ma'lumotlar bazasi muvaffaqiyatli sozlandi.")
-    except mysql.connector.Error as err:
-        logger.error(f"Database Error: {err}")
+    """'users' jadvalini (agar mavjud bo'lmasa) yaratadi."""
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id BIGINT PRIMARY KEY,
+                    first_name VARCHAR(255) NOT NULL,
+                    last_name VARCHAR(255),
+                    username VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            logger.info("Ma'lumotlar bazasi muvaffaqiyatli sozlandi.")
+        except mysql.connector.Error as err:
+            logger.error(f"Baza sozlashda xatolik: {err}")
+        finally:
+            conn.close()
 
 def save_user(user):
     """Foydalanuvchi ma'lumotlarini bazaga saqlaydi."""
-    try:
-        db = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE,
-            port=DB_PORT
-        )
-        cursor = db.cursor()
-        sql = """
-            INSERT INTO users (id, first_name, last_name, username)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE first_name=%s, last_name=%s, username=%s
-        """
-        val = (
-            user.id, user.first_name, user.last_name, user.username,
-            user.first_name, user.last_name, user.username
-        )
-        cursor.execute(sql, val)
-        db.commit()
-        logger.info(f"{user.id} ID'li foydalanuvchi bazaga saqlandi.")
-    except mysql.connector.Error as err:
-        logger.error(f"Foydalanuvchini saqlashda xatolik: {err}")
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            sql = """
+                INSERT INTO users (id, first_name, last_name, username)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE first_name=%s, last_name=%s, username=%s
+            """
+            val = (
+                user.id, user.first_name, user.last_name, user.username,
+                user.first_name, user.last_name, user.username
+            )
+            cursor.execute(sql, val)
+            conn.commit()
+            logger.info(f"{user.id} ID'li foydalanuvchi bazaga saqlandi.")
+        except mysql.connector.Error as err:
+            logger.error(f"Foydalanuvchini saqlashda xatolik: {err}")
+        finally:
+            conn.close()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Foydalanuvchi ma'lumotlarini saqlash
