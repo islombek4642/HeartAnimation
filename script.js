@@ -59,17 +59,27 @@ var scaleAndTranslate = function (pos, sx, sy, dx, dy) {
     return [dx + pos[0] * sx, dy + pos[1] * sy];
 };
 
-var getOptimalFontSize = function(ctx, text, maxWidth, initialSize) {
-    let fontSize = initialSize;
-    // Har doim shriftni o'lchashdan oldin o'rnatish kerak
-    ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
-    // Matn kengligi maksimal kenglikdan katta bo'lsa, shriftni kichraytirish
-    while (ctx.measureText(text).width > maxWidth * dpr && fontSize > 10) { // Minimal 10px
-        fontSize--;
-        ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    let lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const testLine = currentLine + ' ' + word;
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+
+        if (testWidth > maxWidth && currentLine.length > 0) {
+            lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine = testLine;
+        }
     }
-    return fontSize;
-};
+    lines.push(currentLine);
+    return lines;
+}
 
 window.addEventListener('resize', function () {
     width = window.innerWidth;
@@ -179,16 +189,22 @@ var loop = function () {
 
     // Agar URL'da matn bo'lsa, uni markazda chizish
     if (userText) {
-        var maxWidth = width * 0.8; // Matn uchun maksimal kenglik (ekranning 80%)
-        var initialFontSize = 60; // Boshlang'ich shrift o'lchami
-        
-        var optimalFontSize = getOptimalFontSize(ctx, userText, maxWidth, initialFontSize);
-        
+        const fontSize = 25; // Shriftning doimiy o'lchami
+        const lineHeight = fontSize * 1.2;
+        const maxWidth = width * 0.8; // Matn uchun maksimal kenglik (ekranning 80%)
+
         ctx.fillStyle = 'white';
-        ctx.font = 'bold ' + (optimalFontSize * dpr) + 'px Arial';
+        ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(userText, width / 2, height / 2);
+
+        const lines = wrapText(ctx, userText, maxWidth * dpr);
+        const totalTextHeight = lines.length * lineHeight;
+        let startY = (height / 2) - (totalTextHeight / 2) + (lineHeight / 2);
+
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], width / 2, startY + (i * lineHeight));
+        }
     }
 
     window.requestAnimationFrame(loop, canvas);
