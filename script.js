@@ -26,11 +26,10 @@ var init = function () {
 if (loaded) return;
 loaded = true;
 var mobile = window.isDevice;
-var koef = mobile ? 0.5 : 1;
 var canvas = document.getElementById('heart');
 var ctx = canvas.getContext('2d');
-var width = canvas.width = koef * innerWidth;
-var height = canvas.height = koef * innerHeight;
+var width = canvas.width = window.innerWidth;
+var height = canvas.height = window.innerHeight;
 var rand = Math.random;
 ctx.fillStyle = "rgba(0,0,0,1)";
 ctx.fillRect(0, 0, width, height);
@@ -47,8 +46,8 @@ var scaleAndTranslate = function (pos, sx, sy, dx, dy) {
 };
 
 window.addEventListener('resize', function () {
-    width = canvas.width = koef * innerWidth;
-    height = canvas.height = koef * innerHeight;
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
     ctx.fillStyle = "rgba(0,0,0,1)";
     ctx.fillRect(0, 0, width, height);
 });

@@ -2,16 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Heart Animation Effect</title>
-
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Sahifada scroll paydo bo'lmasligi uchun */
+        }
         canvas {
-        position: absolute;
-        left:0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,.2);
+            display: block; /* Canvas ostidagi bo'sh joyni olib tashlash */
+            background-color: #000;
         }
     </style>
   </head>
