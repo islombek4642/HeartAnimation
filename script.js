@@ -59,6 +59,18 @@ var scaleAndTranslate = function (pos, sx, sy, dx, dy) {
     return [dx + pos[0] * sx, dy + pos[1] * sy];
 };
 
+var getOptimalFontSize = function(ctx, text, maxWidth, initialSize) {
+    let fontSize = initialSize;
+    // Har doim shriftni o'lchashdan oldin o'rnatish kerak
+    ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
+    // Matn kengligi maksimal kenglikdan katta bo'lsa, shriftni kichraytirish
+    while (ctx.measureText(text).width > maxWidth * dpr && fontSize > 10) { // Minimal 10px
+        fontSize--;
+        ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
+    }
+    return fontSize;
+};
+
 window.addEventListener('resize', function () {
     width = window.innerWidth;
     height = window.innerHeight;
@@ -167,9 +179,13 @@ var loop = function () {
 
     // Agar URL'da matn bo'lsa, uni markazda chizish
     if (userText) {
+        var maxWidth = width * 0.8; // Matn uchun maksimal kenglik (ekranning 80%)
+        var initialFontSize = 60; // Boshlang'ich shrift o'lchami
+        
+        var optimalFontSize = getOptimalFontSize(ctx, userText, maxWidth, initialFontSize);
+        
         ctx.fillStyle = 'white';
-        var fontSize = 20;
-        ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
+        ctx.font = 'bold ' + (optimalFontSize * dpr) + 'px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(userText, width / 2, height / 2);
