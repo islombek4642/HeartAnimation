@@ -28,8 +28,18 @@ loaded = true;
 var mobile = window.isDevice;
 var canvas = document.getElementById('heart');
 var ctx = canvas.getContext('2d');
-var width = canvas.width = window.innerWidth;
-var height = canvas.height = window.innerHeight;
+
+// Retina/Hi-DPI ekranlar uchun moslashtirish
+var dpr = window.devicePixelRatio || 1;
+var width = window.innerWidth;
+var height = window.innerHeight;
+
+canvas.width = width * dpr;
+canvas.height = height * dpr;
+canvas.style.width = width + 'px';
+canvas.style.height = height + 'px';
+
+ctx.scale(dpr, dpr);
 var rand = Math.random;
 ctx.fillStyle = "rgba(0,0,0,1)";
 ctx.fillRect(0, 0, width, height);
@@ -46,8 +56,15 @@ var scaleAndTranslate = function (pos, sx, sy, dx, dy) {
 };
 
 window.addEventListener('resize', function () {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+
+    ctx.scale(dpr, dpr);
     ctx.fillStyle = "rgba(0,0,0,1)";
     ctx.fillRect(0, 0, width, height);
 });
