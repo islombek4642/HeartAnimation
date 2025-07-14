@@ -2,6 +2,7 @@ import logging
 from telegram import Update, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
 import os
 from dotenv import load_dotenv
+import mysql.connector
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # .env faylidan o'zgaruvchilarni yuklash
@@ -21,7 +22,67 @@ WEB_APP_URL = os.getenv("WEB_APP_URL")
 if not BOT_TOKEN or not WEB_APP_URL:
     raise ValueError("Iltimos, .env fayliga BOT_TOKEN va WEB_APP_URL o'zgaruvchilarini kiriting.")
 
+# Ma'lumotlar bazasi sozlamalari
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_DATABASE = os.getenv("DB_DATABASE")
+DB_PORT = os.getenv("DB_PORT")
+
+def setup_database():
+    """Ma'lumotlar bazasiga ulanadi va kerakli jadvalni yaratadi."""
+    try:
+        db = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE,
+            port=DB_PORT
+        )
+        cursor = db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id BIGINT PRIMARY KEY,
+                first_name VARCHAR(255) NOT NULL,
+                last_name VARCHAR(255),
+                username VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        db.commit()
+        logger.info("Ma'lumotlar bazasi muvaffaqiyatli sozlandi.")
+    except mysql.connector.Error as err:
+        logger.error(f"Database Error: {err}")
+
+def save_user(user):
+    """Foydalanuvchi ma'lumotlarini bazaga saqlaydi."""
+    try:
+        db = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DATABASE,
+            port=DB_PORT
+        )
+        cursor = db.cursor()
+        sql = """
+            INSERT INTO users (id, first_name, last_name, username)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE first_name=%s, last_name=%s, username=%s
+        """
+        val = (
+            user.id, user.first_name, user.last_name, user.username,
+            user.first_name, user.last_name, user.username
+        )
+        cursor.execute(sql, val)
+        db.commit()
+        logger.info(f"{user.id} ID'li foydalanuvchi bazaga saqlandi.")
+    except mysql.connector.Error as err:
+        logger.error(f"Foydalanuvchini saqlashda xatolik: {err}")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Foydalanuvchi ma'lumotlarini saqlash
+    save_user(update.message.from_user)
     """Foydalanuvchi /start buyrug'ini yuborganda web ilovani ochuvchi tugmani jo'natadi."""
     keyboard = [
         [KeyboardButton("Open Heart Animation ❤️", web_app=WebAppInfo(url=WEB_APP_URL))]
@@ -45,4 +106,6 @@ def main() -> None:
     application.run_polling()
 
 if __name__ == "__main__":
+    # Botni ishga tushirishdan oldin bazani sozlash
+    setup_database()
     main()
