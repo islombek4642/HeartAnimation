@@ -1,10 +1,10 @@
 import logging
-from telegram import Update, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
+from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 import os
 from dotenv import load_dotenv
 import mysql.connector
-from urllib.parse import urlparse
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from urllib.parse import urlparse, quote_plus, urlencode
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
 # .env faylidan o'zgaruvchilarni yuklash
 load_dotenv()
@@ -97,6 +97,31 @@ def save_user(user):
         finally:
             conn.close()
 
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Oddiy matnli xabarlarni qabul qiladi va matnli animatsiya uchun link yaratadi."""
+    user_text = update.message.text
+    # Matnni URL uchun xavfsiz formatga o'tkazish
+    encoded_text = quote_plus(user_text)
+
+    # Matn bilan maxsus URL yaratish
+    url_with_text = f"{WEB_APP_URL}?text={encoded_text}"
+
+    # Web App tugmasini yaratish
+    keyboard = [
+        [InlineKeyboardButton(
+            f"'{user_text[:25]}...' matnli animatsiyani ochish",
+            web_app=WebAppInfo(url=url_with_text)
+        )]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Foydalanuvchiga javob yuborish
+    await update.message.reply_text(
+        "Matningiz bilan animatsiya yaratish uchun quyidagi tugmani bosing:",
+        reply_markup=reply_markup,
+    )
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Foydalanuvchi ma'lumotlarini saqlash
     save_user(update.message.from_user)
@@ -117,6 +142,9 @@ def main() -> None:
 
     # /start buyrug'i uchun handler qo'shish
     application.add_handler(CommandHandler("start", start))
+
+    # Oddiy matnli xabarlar uchun handler qo'shish
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     # Botni ishga tushirish
     logger.info("Bot is running...")

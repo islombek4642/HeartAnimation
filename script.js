@@ -41,6 +41,10 @@ canvas.style.height = height + 'px';
 
 ctx.scale(dpr, dpr);
 var rand = Math.random;
+
+// URL'dan matnni olish
+var urlParams = new URLSearchParams(window.location.search);
+var userText = urlParams.get('text');
 ctx.fillStyle = "rgba(0,0,0,1)";
 ctx.fillRect(0, 0, width, height);
 
@@ -160,6 +164,15 @@ var loop = function () {
     }
     //ctx.fillStyle = "rgba(255,255,255,1)";
     //for (i = u.trace.length; i--;) ctx.fillRect(targetPoints[i][0], targetPoints[i][1], 2, 2);
+
+    // Agar URL'da matn bo'lsa, uni markazda chizish
+    if (userText) {
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(userText, width / 2, height / 2);
+    }
 
     window.requestAnimationFrame(loop, canvas);
 };
