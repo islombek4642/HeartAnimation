@@ -46,20 +46,25 @@ def setup_database():
             db_cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                first_name VARCHAR(255),
-                last_name VARCHAR(255),
-                username VARCHAR(255),
-                language_code VARCHAR(10),
                 registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
 
-            # user_id ustuni mavjudligini tekshirish
-            db_cursor.execute(f"SHOW COLUMNS FROM users LIKE 'user_id'")
-            if not db_cursor.fetchone():
-                logger.info("'user_id' ustuni topilmadi. Jadvalga qo'shilmoqda...")
-                db_cursor.execute("ALTER TABLE users ADD COLUMN user_id BIGINT UNIQUE AFTER id")
-                logger.info("'user_id' ustuni muvaffaqiyatli qo'shildi.")
+            # Barcha kerakli ustunlarni tekshirish va kerak bo'lsa qo'shish
+            required_columns = {
+                'user_id': 'BIGINT UNIQUE NOT NULL AFTER id',
+                'first_name': 'VARCHAR(255)',
+                'last_name': 'VARCHAR(255)',
+                'username': 'VARCHAR(255)',
+                'language_code': 'VARCHAR(10)'
+            }
+
+            for column, definition in required_columns.items():
+                db_cursor.execute(f"SHOW COLUMNS FROM users LIKE '{column}'")
+                if not db_cursor.fetchone():
+                    logger.info(f"'{column}' ustuni topilmadi. Jadvalga qo'shilmoqda...")
+                    db_cursor.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
+                    logger.info(f"'{column}' ustuni muvaffaqiyatli qo'shildi.")
 
             db_connection.commit()
         else:
