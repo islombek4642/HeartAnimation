@@ -67,10 +67,9 @@ function wrapText(ctx, text, maxWidth) {
     for (let i = 1; i < words.length; i++) {
         const word = words[i];
         const testLine = currentLine + ' ' + word;
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
+        const testWidth = ctx.measureText(testLine).width;
 
-        if (testWidth > maxWidth && currentLine.length > 0) {
+        if (testWidth > maxWidth && currentLine.length > 0) { 
             lines.push(currentLine);
             currentLine = word;
         } else {
@@ -90,7 +89,8 @@ window.addEventListener('resize', function () {
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
 
-    ctx.scale(dpr, dpr);
+    // Transformatsiyani tozalash va dpr'ni qayta qo'llash
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "rgba(0,0,0,1)";
     ctx.fillRect(0, 0, width, height);
 });
@@ -194,11 +194,11 @@ var loop = function () {
         const maxWidth = width * 0.8; // Matn uchun maksimal kenglik (ekranning 80%)
 
         ctx.fillStyle = 'white';
-        ctx.font = 'bold ' + (fontSize * dpr) + 'px Arial';
+        ctx.font = 'bold ' + fontSize + 'px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        const lines = wrapText(ctx, userText, maxWidth * dpr);
+        const lines = wrapText(ctx, userText, maxWidth);
         const totalTextHeight = lines.length * lineHeight;
         let startY = (height / 2) - (totalTextHeight / 2) + (lineHeight / 2);
 
