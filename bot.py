@@ -166,7 +166,10 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 f"Men '{query}' so'zi bilan ajoyib animatsiya yaratdim! Siz ham quyidagi tugmani bosib, o'zingiz uchun yarating:"
             ),
             reply_markup=reply_markup,
-            description=query
+            description=f"'{query}' matnini animatsiya qilish",
+            thumbnail_url="https://raw.githubusercontent.com/islombek4642/HeartAnimation/master/heart.png",
+            thumbnail_width=64,
+            thumbnail_height=64
         )
     ]
 
