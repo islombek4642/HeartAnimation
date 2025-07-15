@@ -1,6 +1,6 @@
-python-telegram-bot
-python-dotenv
-faster-whisper
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch
-mysql-connector-python
+python-telegram-bot==21.0.1
+python-dotenv==1.0.1
+torch==2.3.1
+faster-whisper==1.0.2
+mysql-connector-python==8.4.0
