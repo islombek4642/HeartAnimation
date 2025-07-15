@@ -161,15 +161,13 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     results = [
         InlineQueryResultArticle(
             id=str(uuid.uuid4()),
-            title=f"'{query}' matnli animatsiyani yuborish",
+            title=f"Animatsiyani yuborish",
+            description=f"'{query}' so'zi bilan animatsiyani ulashish",
             input_message_content=InputTextMessageContent(
-                f"Men '{query}' so'zi bilan ajoyib animatsiya yaratdim! Siz ham quyidagi tugmani bosib, o'zingiz uchun yarating:"
+                f"Men '{query}' so'zi bilan ajoyib animatsiya yaratdim! Ko'rish uchun tugmani bosing:"
             ),
             reply_markup=reply_markup,
-            description=f"'{query}' matnini animatsiya qilish",
-            thumbnail_url="https://raw.githubusercontent.com/islombek4642/HeartAnimation/master/heart.png",
-            thumbnail_width=64,
-            thumbnail_height=64
+            thumbnail_url="https://raw.githubusercontent.com/islombek4642/HeartAnimation/master/heart.png"
         )
     ]
 
@@ -189,7 +187,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             ),
             InlineKeyboardButton(
                 "Ulashish",
-                switch_inline_query_current_chat=user_text
+                switch_inline_query=user_text
             )
         ]
     ]
