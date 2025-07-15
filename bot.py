@@ -127,21 +127,19 @@ def save_user(user):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """/start buyrug'iga javob beradi."""
-    # Ma'lumotlar bazasi operatsiyasini bloklanmaydigan qilish
+    """/start buyrug'i uchun javob qaytaradi."""
     try:
         await asyncio.to_thread(save_user, update.message.from_user)
     except Exception as e:
-        logger.error(f"save_user funksiyasini chaqirishda xato: {e}")
+        logger.error(f"start buyrug'ida save_user funksiyasini chaqirishda xato: {e}")
 
-    keyboard = [
-        [InlineKeyboardButton("Animatsiyani ochish", web_app=WebAppInfo(url=WEB_APP_URL))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "Quyidagi tugmani bosing:",
-        reply_markup=reply_markup,
+        "Salom! 👋\n\n"
+        "Ismingiz, sevgan insoningiz ismi yoki istalgan so'zni yozing va men uni yurakchalar bilan bezalgan 💖 ajoyib animatsiyaga aylantirib beraman.\n\n"
+        "Shunchaki matn yuboring va sehrni ko'ring! ✨\n\n"
+        "*Qo'shimcha imkoniyat:* Audio/video xabarlarni matnga o'girish uchun /transcriber buyrug'ini ishlating. 🎤"
     )
+
 
 async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Foydalanuvchi bot nomini yozganda ishga tushadigan ichki so'rovni boshqaradi."""
@@ -161,10 +159,10 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     results = [
         InlineQueryResultArticle(
             id=str(uuid.uuid4()),
-            title=f"Animatsiyani yuborish",
-            description=f"'{query}' so'zi bilan animatsiyani ulashish",
+            title=f"💖 Animatsiyani yuborish",
+            description=f"'{query}' so'zi bilan sevgi ulashing!",
             input_message_content=InputTextMessageContent(
-                f"Men '{query}' so'zi bilan ajoyib animatsiya yaratdim! Ko'rish uchun tugmani bosing:"
+                f"Men '{query}' so'zi bilan ajoyib animatsiya yaratdim! ✨\n\nSiz ham o'zingiz uchun yaratib ko'ring! 👇"
             ),
             reply_markup=reply_markup,
             thumbnail_url="https://raw.githubusercontent.com/islombek4642/HeartAnimation/master/heart.png"
@@ -193,18 +191,28 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "Matningiz bilan animatsiya yaratish uchun quyidagi tugmani bosing:",
+        "✨ Ajoyib! Matningiz animatsiyaga tayyor.\n\nQuyidagi tugmalar orqali uni oching yoki do'stlaringizga ulashing 👇",
         reply_markup=reply_markup,
     )
 
 
 # --- Transkripsiya uchun yangi funksiyalar ---
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/help buyrug'i uchun yordam matnini ko'rsatadi."""
+    await update.message.reply_text(
+        "**Yordam kerakmi? 🤔 Mana men nimalar qila olaman:**\n\n"
+        "**1. 💖 Animatsiyalari**\n"
+        "Menga istalgan so'z yoki ismni yuboring, men uni yurakchalar bilan bezalgan chiroyli animatsiyaga aylantiraman. Do'stlaringizga ulashishni unutmang!\n\n"
+        "**2. 🎤 Nutqni Matnga O'girish**\n"
+        "Audio, video yoki ovozli xabar yuboring, men uni siz uchun matnga o'girib beraman. Buning uchun /transcriber buyrug'idan foydalaning."
+    )
+
+
 async def transcriber_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/transcriber buyrug'iga javob beradi."""
-    await update.message.reply_text(
-        "Iltimos, matnga o'girish uchun audio, video yoki ovozli xabar yuboring."
-    )
+    await update.message.reply_text("Mengami? 🎧 Audio, video yoki ovozli xabaringizni yuboring, men uni siz uchun matnga o'girib beraman.")
+
 
 async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Audio, video yoki ovozli xabarlarni qabul qilib, transkripsiya qiladi."""
@@ -225,7 +233,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not file_id:
         return
 
-    status_message = await message.reply_text(f"{file_type.capitalize()} faylingiz qabul qilindi va qayta ishlanmoqda. Iltimos, kuting...")
+    status_message = await message.reply_text(f"⏳ {file_type.capitalize()} faylingiz qabul qilindi. Uni matnga o'girishni boshlayapman... Bu biroz vaqt olishi mumkin.")
 
     try:
         file = await context.bot.get_file(file_id)
@@ -241,11 +249,11 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
         # Natijani yuborish
-        await status_message.edit_text(f"**Transkripsiya natijasi:**\n\n{transcription}", parse_mode='Markdown')
+        await status_message.edit_text(f"✅ Tayyor! Mana natija:\n\n> {transcription}", parse_mode='Markdown')
 
     except Exception as e:
         logger.error(f"Media faylni qayta ishlashda xato: {e}", exc_info=True)
-        await status_message.edit_text("Kechirasiz, faylingizni qayta ishlashda kutilmagan xatolik yuz berdi.")
+        await status_message.edit_text("😔 Kechirasiz, faylingizni qayta ishlashda xatolik yuz berdi. Iltimos, boshqa fayl bilan urinib ko'ring.")
 
 
 def main() -> None:
@@ -254,6 +262,7 @@ def main() -> None:
 
     # Handlers
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("transcriber", transcriber_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.AUDIO | filters.VIDEO | filters.VOICE, handle_media))
