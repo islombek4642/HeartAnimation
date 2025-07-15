@@ -1,10 +1,11 @@
 import logging
-from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+import uuid
+from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 import os
 from dotenv import load_dotenv
 import mysql.connector
 from urllib.parse import urlparse, quote_plus
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, InlineQueryHandler
 import asyncio
 from transcriber import transcribe_audio
 
@@ -142,6 +143,36 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup=reply_markup,
     )
 
+async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Foydalanuvchi bot nomini yozganda ishga tushadigan ichki so'rovni boshqaradi."""
+    query = update.inline_query.query
+
+    if not query:
+        return
+
+    encoded_text = quote_plus(query)
+    url_with_text = f"{WEB_APP_URL}?text={encoded_text}"
+    keyboard = [[InlineKeyboardButton(
+        f"Animatsiyani ochish: '{query[:20]}...'",
+        web_app=WebAppInfo(url=url_with_text)
+    )]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    results = [
+        InlineQueryResultArticle(
+            id=str(uuid.uuid4()),
+            title=f"'{query}' matnli animatsiyani yuborish",
+            input_message_content=InputTextMessageContent(
+                f"Men '{query}' so'zi bilan ajoyib animatsiya yaratdim! Siz ham quyidagi tugmani bosib, o'zingiz uchun yarating:"
+            ),
+            reply_markup=reply_markup,
+            description=query
+        )
+    ]
+
+    await update.inline_query.answer(results)
+
+
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Oddiy matnli xabarlarni qabul qiladi va matnli animatsiya uchun link yaratadi."""
     user_text = update.message.text
@@ -150,8 +181,12 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     keyboard = [
         [
             InlineKeyboardButton(
-                f"'{user_text[:25]}...' matnli animatsiyani ochish",
+                f"Animatsiyani ochish",
                 web_app=WebAppInfo(url=url_with_text)
+            ),
+            InlineKeyboardButton(
+                "Ulashish",
+                switch_inline_query=user_text
             )
         ]
     ]
@@ -221,6 +256,7 @@ def main() -> None:
     application.add_handler(CommandHandler("transcriber", transcriber_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.AUDIO | filters.VIDEO | filters.VOICE, handle_media))
+    application.add_handler(InlineQueryHandler(inline_query))
 
     # Botni ishga tushurish
     logger.info("Bot is running...")
