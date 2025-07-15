@@ -45,14 +45,14 @@ def setup_database():
             # users jadvalini yaratish (agar mavjud bo'lmasa)
             db_cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INT NOT NULL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
 
-            # "id" ustunida AUTO_INCREMENT mavjudligini ta'minlash
+            # Mavjud jadval uchun "id" ustunida AUTO_INCREMENT mavjudligini ta'minlash
             logger.info("'id' ustunida AUTO_INCREMENT xususiyatini tekshirish...")
-            db_cursor.execute("ALTER TABLE users MODIFY COLUMN id INT AUTO_INCREMENT PRIMARY KEY")
+            db_cursor.execute("ALTER TABLE users MODIFY COLUMN id INT AUTO_INCREMENT")
             logger.info("'id' ustuni AUTO_INCREMENT sifatida sozlandi.")
 
             # Barcha kerakli ustunlarni tekshirish va kerak bo'lsa qo'shish
