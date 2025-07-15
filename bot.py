@@ -154,7 +154,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     url_with_text = f"{WEB_APP_URL}?text={encoded_text}"
     keyboard = [[InlineKeyboardButton(
         f"Animatsiyani ochish: '{query[:20]}...'",
-        web_app=WebAppInfo(url=url_with_text)
+        url=url_with_text
     )]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
