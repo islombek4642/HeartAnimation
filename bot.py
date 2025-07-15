@@ -8,6 +8,7 @@ from urllib.parse import urlparse, quote_plus
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, InlineQueryHandler
 import asyncio
 from transcriber import transcribe_audio
+import telegram
 
 # .env faylidan o'zgaruvchilarni yuklash
 load_dotenv()
@@ -249,11 +250,32 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
         # Natijani yuborish
-        await status_message.edit_text(f"✅ Tayyor! Mana natija:\n\n> {transcription}", parse_mode='Markdown')
+        if len(transcription) > 4000: # Telegram chegarasi 4096, ehtiyot uchun 4000
+            await status_message.edit_text("✅ Tayyor! Natija juda uzun bo'lgani uchun qismlarga bo'lib yuborilmoqda...")
+            parts = []
+            while len(transcription) > 0:
+                if len(transcription) > 4000:
+                    split_pos = transcription.rfind(' ', 0, 4000)
+                    if split_pos == -1: # Agar so'z topilmasa, majburan bo'lish
+                        split_pos = 4000
+                    parts.append(transcription[:split_pos])
+                    transcription = transcription[split_pos:].lstrip()
+                else:
+                    parts.append(transcription)
+                    break
+            
+            for part in parts:
+                await message.reply_text(part)
+        else:
+            await status_message.edit_text(f"✅ Tayyor! Mana natija:\n\n> {transcription}", parse_mode='Markdown')
 
     except Exception as e:
         logger.error(f"Media faylni qayta ishlashda xato: {e}", exc_info=True)
-        await status_message.edit_text("😔 Kechirasiz, faylingizni qayta ishlashda xatolik yuz berdi. Iltimos, boshqa fayl bilan urinib ko'ring.")
+        # Xato turini tekshirish
+        if isinstance(e, telegram.error.BadRequest) and "Message_too_long" in str(e):
+             await status_message.edit_text("😔 Kechirasiz, transkripsiya matni juda uzun chiqdi va uni yuborib bo'lmadi.")
+        else:
+            await status_message.edit_text("😔 Kechirasiz, faylingizni qayta ishlashda xatolik yuz berdi. Iltimos, boshqa fayl bilan urinib ko'ring.")
 
 
 def main() -> None:
