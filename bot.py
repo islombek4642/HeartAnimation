@@ -45,10 +45,15 @@ def setup_database():
             # users jadvalini yaratish (agar mavjud bo'lmasa)
             db_cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                id INT NOT NULL PRIMARY KEY,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
+
+            # "id" ustunida AUTO_INCREMENT mavjudligini ta'minlash
+            logger.info("'id' ustunida AUTO_INCREMENT xususiyatini tekshirish...")
+            db_cursor.execute("ALTER TABLE users MODIFY COLUMN id INT AUTO_INCREMENT PRIMARY KEY")
+            logger.info("'id' ustuni AUTO_INCREMENT sifatida sozlandi.")
 
             # Barcha kerakli ustunlarni tekshirish va kerak bo'lsa qo'shish
             required_columns = {
@@ -76,28 +81,58 @@ def setup_database():
 
 def save_user(user):
     """Foydalanuvchi ma'lumotlarini bazaga saqlaydi."""
-    if not db_cursor:
-        logger.warning("DB ulanishi mavjud emas. Foydalanuvchi saqlanmadi.")
-        return
+    try:
+        if not db_connection or not db_connection.is_connected():
+            logger.info("Ma'lumotlar bazasi bilan aloqa yo'q. Qayta ulanishga harakat qilinmoqda...")
+            setup_database()
+        
+        # Ulanishdan keyin ham kursor mavjudligini tekshirish
+        if not db_cursor:
+            logger.warning("DB ulanishi mavjud emas. Foydalanuvchi saqlanmadi.")
+            return
+    except Exception as e:
+        logger.error(f"DB ulanishini tekshirishda xato: {e}")
+        return # Ulanishda xato bo'lsa, funksiyadan chiqish
 
     try:
-        sql = """
-        INSERT INTO users (user_id, first_name, last_name, username, language_code)
-        VALUES (%s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-        first_name = VALUES(first_name), last_name = VALUES(last_name), username = VALUES(username)
-        """
-        val = (user.id, user.first_name, user.last_name, user.username, user.language_code)
-        db_cursor.execute(sql, val)
+        # Foydalanuvchi mavjudligini tekshirish
+        db_cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (user.id,))
+        result = db_cursor.fetchone()
+
+        if result:
+            # Agar mavjud bo'lsa, ma'lumotlarni yangilash
+            sql = """
+            UPDATE users
+            SET first_name = %s, last_name = %s, username = %s, language_code = %s
+            WHERE user_id = %s
+            """
+            val = (user.first_name, user.last_name, user.username, user.language_code, user.id)
+            db_cursor.execute(sql, val)
+            logger.info(f"Foydalanuvchi {user.id} ma'lumotlari yangilandi.")
+        else:
+            # Agar mavjud bo'lmasa, yangi foydalanuvchi qo'shish
+            sql = """
+            INSERT INTO users (user_id, first_name, last_name, username, language_code)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            val = (user.id, user.first_name, user.last_name, user.username, user.language_code)
+            db_cursor.execute(sql, val)
+            logger.info(f"Yangi foydalanuvchi {user.id} bazaga saqlandi.")
+
         db_connection.commit()
-        logger.info(f"Foydalanuvchi {user.id} bazaga saqlandi/yangilandi.")
+
     except mysql.connector.Error as err:
         logger.error(f"Foydalanuvchini saqlashda xato: {err}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/start buyrug'iga javob beradi."""
-    save_user(update.message.from_user)
+    # Ma'lumotlar bazasi operatsiyasini bloklanmaydigan qilish
+    try:
+        await asyncio.to_thread(save_user, update.message.from_user)
+    except Exception as e:
+        logger.error(f"save_user funksiyasini chaqirishda xato: {e}")
+
     keyboard = [
         [InlineKeyboardButton("Animatsiyani ochish", web_app=WebAppInfo(url=WEB_APP_URL))]
     ]
