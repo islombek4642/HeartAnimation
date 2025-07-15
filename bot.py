@@ -186,7 +186,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             ),
             InlineKeyboardButton(
                 "Ulashish",
-                switch_inline_query=user_text
+                switch_inline_query_current_chat=user_text
             )
         ]
     ]
